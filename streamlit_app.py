@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import os
 import io
 
@@ -9,171 +8,190 @@ import io
 # 1. CONFIGURAÇÃO DA PÁGINA
 # ==============================================================================
 st.set_page_config(
-    page_title="Control Center | Cidade Alfa",
-    page_icon="⚡",
+    page_title="Monitor de Transporte Autônomo | FIAP",
+    page_icon="🌌",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ==============================================================================
-# 2. DESIGN SYSTEM & CSS CUSTOMIZADO (OBSIDIAN DARK NEON)
+# 2. INJEÇÃO DE CSS AVANÇADO (DUOTONE: AZUL & ROXO)
 # ==============================================================================
 st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap');
 
-    /* Reset global */
-    html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
-    }
+/* --- Variáveis de Tema (Apenas Azul e Roxo) --- */
+:root {
+    --bg-dark: #06070D;
+    --card-bg: rgba(15, 17, 28, 0.6);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --neon-blue: #00B3FF;
+    --neon-purple: #7D2AE8;
+    --text-main: #F8FAFC;
+    --text-muted: #8B949E;
+}
 
-    .stApp {
-        background-color: #090D16 !important;
-        color: #F1F5F9;
-    }
+/* Reset Global */
+html, body, [class*="css"] {
+    font-family: 'Outfit', sans-serif !important;
+}
 
-    .block-container {
-        padding-top: 1.2rem !important;
-        padding-bottom: 2rem !important;
-        max-width: 95% !important;
-    }
+.stApp {
+    background-color: var(--bg-dark) !important;
+    background-image: 
+        radial-gradient(circle at 10% 40%, rgba(125, 42, 232, 0.06), transparent 30%),
+        radial-gradient(circle at 90% 60%, rgba(0, 179, 255, 0.06), transparent 30%);
+    color: var(--text-main);
+}
 
-    #MainMenu, footer, header { visibility: hidden; }
+/* --- Animações --- */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-    /* Barra Superior Banner */
-    .hero-banner {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.7) 100%);
-        border: 1px solid rgba(99, 102, 241, 0.25);
-        border-radius: 16px;
-        padding: 20px 24px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.5);
-    }
+@keyframes fadeInTab {
+    from { opacity: 0; filter: blur(4px); }
+    to { opacity: 1; filter: blur(0); }
+}
 
-    .hero-title {
-        font-size: 22px;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        color: #F8FAFC;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 96% !important;
+    animation: fadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-    .hero-subtitle {
-        font-size: 13px;
-        color: #94A3B8;
-        margin-top: 4px;
-        font-weight: 500;
-    }
+#MainMenu, footer, header { visibility: hidden; }
 
-    .status-badge {
-        background: rgba(16, 185, 129, 0.12);
-        color: #34D399;
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
+/* --- CARDS NATIVOS (st.metric) --- */
+div[data-testid="stMetric"] {
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid var(--border-color) !important;
+    border-left: 4px solid var(--neon-purple) !important;
+    border-radius: 16px !important;
+    padding: 20px 24px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
 
-    .pulse-dot {
-        width: 8px;
-        height: 8px;
-        background-color: #10B981;
-        border-radius: 50%;
-        box-shadow: 0 0 8px #10B981;
-    }
+div[data-testid="stMetric"]:hover {
+    transform: translateY(-6px) scale(1.02) !important;
+    border-left: 4px solid var(--neon-blue) !important;
+    box-shadow: 0 15px 35px rgba(0, 179, 255, 0.15) !important;
+    border-color: rgba(0, 179, 255, 0.3) !important;
+}
 
-    /* Cards de KPI Executivos */
-    .kpi-container {
-        background: #111827;
-        border: 1px solid #1F293D;
-        border-radius: 14px;
-        padding: 16px 18px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
+div[data-testid="stMetricLabel"] p {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.2px !important;
+    color: var(--text-muted) !important;
+}
 
-    .kpi-container:hover {
-        border-color: #6366F1;
-        transform: translateY(-2px);
-    }
+div[data-testid="stMetricValue"] {
+    font-size: 32px !important;
+    font-weight: 900 !important;
+    background: -webkit-linear-gradient(45deg, #FFF, #C4B5FD);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px !important;
+}
 
-    .kpi-title {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: #64748B;
-        margin-bottom: 8px;
-    }
+/* --- ABAS (st.tabs) --- */
+div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] { display: none !important; }
 
-    .kpi-number {
-        font-size: 28px;
-        font-weight: 800;
-        color: #F8FAFC;
-        line-height: 1;
-        letter-spacing: -0.5px;
-    }
+.stTabs [data-baseweb="tab-list"] {
+    gap: 12px !important;
+    background: rgba(10, 12, 20, 0.8) !important;
+    padding: 8px !important;
+    border-radius: 20px !important;
+    border: 1px solid var(--border-color) !important;
+    margin-bottom: 30px !important;
+    backdrop-filter: blur(10px);
+}
 
-    .kpi-subtext {
-        font-size: 11px;
-        margin-top: 8px;
-        color: #94A3B8;
-        font-weight: 500;
-    }
+.stTabs [data-baseweb="tab"] {
+    height: 46px !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 14px !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 0 24px !important;
+    transition: all 0.3s ease !important;
+}
 
-    /* Container dos Gráficos Plotly */
-    .stPlotlyChart {
-        background: #111827;
-        border: 1px solid #1F293D;
-        border-radius: 14px;
-        padding: 8px;
-    }
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--text-main) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
 
-    /* Customização da Sidebar */
-    section[data-testid="stSidebar"] {
-        background-color: #0D131F !important;
-        border-right: 1px solid #1F293D;
-    }
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 20px rgba(125, 42, 232, 0.4) !important;
+}
 
-    /* Abas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        border-bottom: 1px solid #1F293D;
-    }
+.stTabs [data-baseweb="tab-panel"] {
+    animation: fadeInTab 0.6s ease-out;
+}
 
-    .stTabs [data-baseweb="tab"] {
-        height: 42px;
-        background-color: #111827;
-        border: 1px solid #1F293D;
-        border-radius: 10px;
-        color: #94A3B8;
-        font-weight: 600;
-        font-size: 13px;
-        padding: 0 18px;
-    }
+/* --- SIDEBAR --- */
+section[data-testid="stSidebar"] {
+    background-color: #07080F !important;
+    border-right: 1px solid var(--border-color) !important;
+}
 
-    .stTabs [aria-selected="true"] {
-        background: #6366F1 !important;
-        color: #FFFFFF !important;
-        border-color: #818CF8 !important;
-    }
-    </style>
+/* --- GRÁFICOS --- */
+.stPlotlyChart {
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 20px !important;
+    padding: 15px !important;
+    transition: transform 0.3s ease;
+}
+.stPlotlyChart:hover {
+    border-color: rgba(0, 179, 255, 0.4) !important;
+}
+
+/* --- BOTÕES PREMIUM --- */
+div[data-testid="stDownloadButton"] button {
+    background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple)) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 30px !important;
+    padding: 10px 24px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(125, 42, 232, 0.2) !important;
+}
+
+div[data-testid="stDownloadButton"] button:hover {
+    transform: scale(1.05) translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(0, 179, 255, 0.4) !important;
+}
+
+/* Customização de Títulos */
+h1 {
+    font-weight: 900 !important;
+    background: -webkit-linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+</style>
 """, unsafe_allow_html=True)
 
 
 # ==============================================================================
-# 3. CARREGAMENTO DA BASE
+# 3. CARREGAMENTO DA BASE DE DADOS
 # ==============================================================================
 @st.cache_data
 def carregar_dados():
@@ -184,8 +202,25 @@ def carregar_dados():
     caminho = next((c for c in candidatos if os.path.exists(c)), None)
     
     if not caminho:
-        st.error("❌ Base de dados não encontrada.")
-        st.stop()
+        st.toast("⚠️ Base não encontrada. Gerando dados simulados para visualização do design.", icon="🌌")
+        df_raw = pd.DataFrame({
+            'linha': ['L1', 'L2', 'L1', 'L3', 'L2'] * 20,
+            'regiao': ['Norte', 'Sul', 'Leste', 'Oeste', 'Centro'] * 20,
+            'status_pontualidade': ['No horário', 'Atrasada', 'Crítica', 'No horário', 'No horário'] * 20,
+            'atraso_min': [0, 15, 45, 0, 0] * 20,
+            'tipo_falha': ['Nenhuma', 'Nenhuma', 'Motor', 'Nenhuma', 'Sensores'] * 20,
+            'nivel_trafego': ['Baixo', 'Alto', 'Moderado', 'Baixo', 'Baixo'] * 20,
+            'consumo_kwh_km': [1.2, 1.8, 1.5, 1.1, 1.3] * 20,
+            'velocidade_media_kmh': [45, 20, 35, 50, 40] * 20,
+            'ocupacao_pct': [40, 90, 70, 30, 60] * 20,
+            'passageiros_transportados': [200, 450, 350, 150, 300] * 20,
+            'periodo_dia': ['Manhã', 'Tarde', 'Noite', 'Manhã', 'Tarde'] * 20,
+            'intervencao_humana': ['Não', 'Não', 'Sim', 'Não', 'Não'] * 20,
+            'tempo_interrupcao_min': [0, 0, 25, 0, 5] * 20,
+            'id_viagem': range(100),
+            'id_onibus': [f"BUS-{i}" for i in range(100)]
+        })
+        return df_raw
         
     df_raw = pd.read_excel(caminho, sheet_name=0)
     if 'data_hora_saida' in df_raw.columns:
@@ -196,209 +231,271 @@ df = carregar_dados()
 
 
 # ==============================================================================
-# 4. CABEÇALHO HERO BANNER
+# 4. CABEÇALHO PRINCIPAL
 # ==============================================================================
-st.markdown("""
-    <div class="hero-banner">
-        <div>
-            <div class="hero-title">⚡ Control Center • Transporte Público Autônomo</div>
-            <div class="hero-subtitle">Cidade Alfa — Telemetria de Frota, Monitoramento de SLA e Contingência em Tempo Real</div>
-        </div>
-        <div class="status-badge">
-            <div class="pulse-dot"></div> TELEMETRIA ATIVA
-        </div>
-    </div>
-""", unsafe_allow_html=True)
+st.title("Monitor Inteligente de Transporte Público")
+st.markdown("<p style='color: #8B949E; font-size: 1.1rem; font-weight: 300;'>Cidade Alfa — Telemetria de Frota Autônoma, Análise de SLA e Inteligência Operacional | FIAP • FASE 5</p>", unsafe_allow_html=True)
+st.divider()
 
 
 # ==============================================================================
-# 5. FILTROS NA BARRA LATERAL
+# 5. FILTROS NA SIDEBAR
 # ==============================================================================
-with st.sidebar:
-    st.markdown("### 🎛️ Filtros do Painel")
-    st.caption("Refine o escopo de análise")
-    st.markdown("---")
+st.sidebar.markdown("### 🎛️ Filtros Globais")
+st.sidebar.caption("Ajuste a amostragem da análise")
 
-    filtro_linha = st.multiselect("Linha de Ônibus", options=sorted(df['linha'].dropna().unique()))
-    filtro_regiao = st.multiselect("Região Urbano", options=sorted(df['regiao'].dropna().unique()))
-    filtro_status = st.multiselect("Status do SLA", options=sorted(df['status_pontualidade'].dropna().unique()))
-    filtro_falha = st.multiselect("Tipo de Ocorrência", options=sorted(df['tipo_falha'].dropna().unique()))
+filtro_linha = st.sidebar.multiselect("Linha do Ônibus", options=sorted(df['linha'].dropna().unique()))
+filtro_regiao = st.sidebar.multiselect("Região Urbana", options=sorted(df['regiao'].dropna().unique()))
+filtro_status = st.sidebar.multiselect("Status SLA", options=sorted(df['status_pontualidade'].dropna().unique()))
 
-# Aplicação dos Filtros
+st.sidebar.divider()
+st.sidebar.markdown("### 🔥 Filtro de Exceção")
+apenas_falhas = st.sidebar.checkbox("Apenas Viagens com Falhas / Críticas", value=False)
+
+if 'nivel_trafego' in df.columns:
+    st.sidebar.divider()
+    st.sidebar.markdown("### 🌧️ Condições Operacionais")
+    filtro_trafego = st.sidebar.multiselect("Nível de Tráfego", options=sorted(df['nivel_trafego'].dropna().unique()))
+else:
+    filtro_trafego = []
+
+
+# ==============================================================================
+# 6. APLICAÇÃO DOS FILTROS
+# ==============================================================================
 df_filtrado = df.copy()
-if filtro_linha: df_filtrado = df_filtrado[df_filtrado['linha'].isin(filtro_linha)]
-if filtro_regiao: df_filtrado = df_filtrado[df_filtrado['regiao'].isin(filtro_regiao)]
-if filtro_status: df_filtrado = df_filtrado[df_filtrado['status_pontualidade'].isin(filtro_status)]
-if filtro_falha: df_filtrado = df_filtrado[df_filtrado['tipo_falha'].isin(filtro_falha)]
+
+if apenas_falhas:
+    df_filtrado = df_filtrado[
+        (df_filtrado['status_pontualidade'] == 'Crítica') | 
+        (df_filtrado['tipo_falha'] != 'Nenhuma')
+    ]
+
+if filtro_linha:
+    df_filtrado = df_filtrado[df_filtrado['linha'].isin(filtro_linha)]
+if filtro_regiao:
+    df_filtrado = df_filtrado[df_filtrado['regiao'].isin(filtro_regiao)]
+if filtro_status:
+    df_filtrado = df_filtrado[df_filtrado['status_pontualidade'].isin(filtro_status)]
+if filtro_trafego:
+    df_filtrado = df_filtrado[df_filtrado['nivel_trafego'].isin(filtro_trafego)]
 
 if df_filtrado.empty:
-    st.warning("Nenhum registro localizado para a combinação de filtros aplicada.")
+    st.warning("⚠️ Nenhum registro localizado para os filtros selecionados.")
     st.stop()
 
 
 # ==============================================================================
-# 6. KPIS EXECUTIVOS (4 CARDS LIMPOS)
+# 7. RESUMO DA AMOSTRA NA SIDEBAR
 # ==============================================================================
-total_operacoes = len(df_filtrado)
-atraso_medio = df_filtrado['atraso_min'].mean()
-pct_no_horario = (df_filtrado['status_pontualidade'] == 'No horário').mean() * 100
-qtd_falhas = (df_filtrado['tipo_falha'] != 'Nenhuma').sum()
-
-k1, k2, k3, k4 = st.columns(4)
-
-with k1:
-    st.markdown(f"""
-        <div class="kpi-container">
-            <div class="kpi-title">Total de Viagens</div>
-            <div class="kpi-number">{total_operacoes:,.0f}</div>
-            <div class="kpi-subtext">Operações registradas</div>
-        </div>
-    """.replace(",", "."), unsafe_allow_html=True)
-
-with k2:
-    st.markdown(f"""
-        <div class="kpi-container">
-            <div class="kpi-title">Atraso Médio</div>
-            <div class="kpi-number" style="color: #F87171;">{atraso_medio:.1f} <span style="font-size:16px; color:#94A3B8;">min</span></div>
-            <div class="kpi-subtext">Desvio em relação ao programado</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with k3:
-    st.markdown(f"""
-        <div class="kpi-container">
-            <div class="kpi-title">Cumprimento de SLA</div>
-            <div class="kpi-number" style="color: #34D399;">{pct_no_horario:.1f}%</div>
-            <div class="kpi-subtext">Viagens estritamente no horário</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with k4:
-    st.markdown(f"""
-        <div class="kpi-container">
-            <div class="kpi-title">Ocorrências Técnicas</div>
-            <div class="kpi-number" style="color: #FBBF24;">{qtd_falhas}</div>
-            <div class="kpi-subtext">{(qtd_falhas/total_operacoes)*100:.1f}% de taxa de incidência</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
+st.sidebar.divider()
+st.sidebar.metric(
+    label="Registros Selecionados",
+    value=f"{len(df_filtrado):,}".replace(",", "."),
+    delta=f"{(len(df_filtrado)/len(df))*100:.1f}% da base original"
+)
 
 
 # ==============================================================================
-# 7. HELPER DE ESTILIZAÇÃO DO PLOTLY
+# 8. ESTRUTURA PRINCIPAL EM ABAS
 # ==============================================================================
-def estilizar_grafico(fig, titulo=""):
-    fig.update_layout(
-        title=dict(text=f"<b>{titulo}</b>", font=dict(size=14, color="#F8FAFC")),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(t=40, b=25, l=15, r=15),
-        font=dict(color="#94A3B8"),
-        xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(color="#94A3B8")),
-        yaxis=dict(showgrid=True, gridcolor="#1F293D", zeroline=False, tickfont=dict(color="#94A3B8")),
-        legend=dict(font=dict(color="#F8FAFC"))
-    )
-    return fig
-
-
-# ==============================================================================
-# 8. ESTRUTURA PRINCIPAL EM 2 ABAS OBJETIVAS
-# ==============================================================================
-tab_operacao, tab_frota = st.tabs([
-    "🚨 Central de Contingência & Diagnóstico",
-    "🚌 Raio-X da Frota & Telemetria"
+tab_operacao, tab_telemetria, tab_falhas = st.tabs([
+    "📊 1. Operação & SLA",
+    "⚡ 2. Telemetria & Energia",
+    "🚨 3. Confiabilidade & Falhas"
 ])
 
 
 # ------------------------------------------------------------------------------
-# TAB 1: CENTRAL DE CONTINGÊNCIA & DIAGNÓSTICO
+# ABA 1: OPERAÇÃO & SLA
 # ------------------------------------------------------------------------------
 with tab_operacao:
-    col_tb, col_chart = st.columns([1.3, 1])
+    m1, m2, m3, m4 = st.columns(4)
+    
+    total_viagens = len(df_filtrado)
+    atraso_medio = df_filtrado['atraso_min'].mean()
+    pct_no_horario = (df_filtrado['status_pontualidade'] == 'No horário').mean() * 100
+    qtd_criticas = (df_filtrado['status_pontualidade'] == 'Crítica').sum()
 
-    with col_tb:
-        st.markdown("#### 🚨 Feed de Viagens Críticas")
-        st.caption("Ocorrências ordenadas por maior tempo de atraso ou falha mecânica/sensor")
-        
-        cols_exibir = ['id_viagem', 'id_onibus', 'linha', 'regiao', 'atraso_min', 'status_pontualidade', 'tipo_falha', 'ocupacao_pct']
-        df_incidentes = df_filtrado[
-            (df_filtrado['status_pontualidade'] == 'Crítica') | 
-            (df_filtrado['tipo_falha'] != 'Nenhuma') |
-            (df_filtrado['atraso_min'] > 15)
-        ][cols_exibir].sort_values('atraso_min', ascending=False)
+    m1.metric("Viagens Analisadas", f"{total_viagens:,}".replace(",", "."), "Volume Processado")
+    m2.metric("Atraso Médio", f"{atraso_medio:.1f} min", "Desvio Global", delta_color="off")
+    m3.metric("Taxa de Sucesso (SLA)", f"{pct_no_horario:.1f}%", "No Horário", delta_color="normal")
+    m4.metric("Incidentes Críticos", f"{qtd_criticas}", f"{(qtd_criticas/total_viagens)*100:.1f}% da amostragem", delta_color="inverse")
 
-        if not df_incidentes.empty:
-            st.dataframe(
-                df_incidentes,
-                column_config={
-                    "id_viagem": "ID",
-                    "id_onibus": "Ônibus",
-                    "linha": "Linha",
-                    "regiao": "Região",
-                    "atraso_min": st.column_config.NumberColumn("Atraso", format="%d min"),
-                    "status_pontualidade": "Status SLA",
-                    "tipo_falha": "Ocorrência",
-                    "ocupacao_pct": st.column_config.ProgressColumn("Ocupação", min_value=0, max_value=100, format="%d%%")
-                },
-                use_container_width=True,
-                hide_index=True,
-                height=350
-            )
-        else:
-            st.success("✅ Nenhuma viagem crítica identificada nos parâmetros atuais.")
+    st.write("---")
 
-    with col_chart:
+    c1, c2 = st.columns(2)
+
+    with c1:
         df_linha = df_filtrado.groupby('linha')['atraso_min'].mean().reset_index().sort_values('atraso_min', ascending=True)
         fig_linha = px.bar(
             df_linha, y='linha', x='atraso_min', text_auto='.1f', orientation='h',
-            color='atraso_min', color_continuous_scale=['#6366F1', '#EF4444']
+            color='atraso_min', color_continuous_scale=['#00B3FF', '#7D2AE8'],
+            title="⏳ Atraso Médio por Linha (minutos)"
         )
-        fig_linha = estilizar_grafico(fig_linha, "Atraso Médio por Linha (minutos)")
-        fig_linha.update_layout(coloraxis_showscale=False, xaxis_title=None, yaxis_title=None, height=350)
+        fig_linha.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            coloraxis_showscale=False, xaxis_title="", yaxis_title="", height=360,
+            font=dict(color="#F8FAFC", family="Outfit")
+        )
         st.plotly_chart(fig_linha, use_container_width=True)
 
+    with c2:
+        df_status = df_filtrado['status_pontualidade'].value_counts().reset_index()
+        df_status.columns = ['Status', 'Qtd']
+        fig_status = px.pie(
+            df_status, values='Qtd', names='Status', hole=0.6,
+            color='Status',
+            # Paleta de tons da nova identidade (Azul claro p/ bom, Roxo p/ crítico)
+            color_discrete_map={'No horário': '#00B3FF', 'Atrasada': '#7D2AE8', 'Crítica': '#3B0086'},
+            title="🎯 Distribuição de Cumprimento do SLA"
+        )
+        fig_status.update_traces(textinfo='percent+label', hoverinfo='label+percent+value', textfont_size=14)
+        fig_status.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            height=360, font=dict(color="#F8FAFC", family="Outfit"), showlegend=False
+        )
+        st.plotly_chart(fig_status, use_container_width=True)
+
 
 # ------------------------------------------------------------------------------
-# TAB 2: RAIO-X DA FROTA & TELEMETRIA
+# ABA 2: TELEMETRIA & EFICIÊNCIA ENERGÉTICA
 # ------------------------------------------------------------------------------
-with tab_frota:
-    f1, f2 = st.columns(2)
+with tab_telemetria:
+    e1, e2, e3, e4 = st.columns(4)
 
-    with f1:
-        df_falha_cat = df_filtrado['tipo_falha'].value_counts().reset_index()
-        df_falha_cat.columns = ['Tipo de Falha', 'Total']
-        fig_falha = px.bar(
-            df_falha_cat, x='Tipo de Falha', y='Total', text_auto=True,
-            color_discrete_sequence=['#818CF8']
-        )
-        fig_falha = estilizar_grafico(fig_falha, "Frequência por Tipo de Falha Registrar")
-        fig_falha.update_layout(xaxis_title=None, yaxis_title=None, height=320)
-        st.plotly_chart(fig_falha, use_container_width=True)
+    consumo_medio = df_filtrado['consumo_kwh_km'].mean() if 'consumo_kwh_km' in df_filtrado.columns else 0
+    vel_media = df_filtrado['velocidade_media_kmh'].mean() if 'velocidade_media_kmh' in df_filtrado.columns else 0
+    ocupacao_media = df_filtrado['ocupacao_pct'].mean() if 'ocupacao_pct' in df_filtrado.columns else 0
+    pax_total = df_filtrado['passageiros_transportados'].sum() if 'passageiros_transportados' in df_filtrado.columns else 0
 
-    with f2:
-        fig_scatter = px.scatter(
-            df_filtrado, x='ocupacao_pct', y='consumo_kwh_km', color='nivel_trafego',
-            color_discrete_map={'Baixo': '#34D399', 'Moderado': '#FBBF24', 'Alto': '#F87171'}
-        )
-        fig_scatter = estilizar_grafico(fig_scatter, "Consumo Energético (kWh/km) vs Taxa de Ocupação (%)")
-        fig_scatter.update_layout(xaxis_title="Ocupação (%)", yaxis_title="Consumo (kWh/km)", height=320)
-        st.plotly_chart(fig_scatter, use_container_width=True)
+    e1.metric("Consumo Médio", f"{consumo_medio:.2f} kWh/km", "Eficiência da Bateria", delta_color="off")
+    e2.metric("Velocidade Média", f"{vel_media:.1f} km/h", "Fluidez nas Vias", delta_color="off")
+    e3.metric("Ocupação Média", f"{ocupacao_media:.1f}%", "Capacidade Utilizada", delta_color="off")
+    e4.metric("Passageiros Transp.", f"{pax_total:,.0f}".replace(",", "."), "Volume Total", delta_color="normal")
+
+    st.write("---")
+
+    g1, g2 = st.columns(2)
+
+    with g1:
+        if {'ocupacao_pct', 'consumo_kwh_km', 'nivel_trafego'}.issubset(df_filtrado.columns):
+            fig_scat = px.scatter(
+                df_filtrado, x='ocupacao_pct', y='consumo_kwh_km', color='nivel_trafego',
+                color_discrete_map={'Baixo': '#00B3FF', 'Moderado': '#7D2AE8', 'Alto': '#3B0086'},
+                size='consumo_kwh_km', opacity=0.8,
+                title="🔋 Consumo (kWh/km) vs Ocupação (%)"
+            )
+            fig_scat.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                xaxis_title="Ocupação (%)", yaxis_title="Consumo (kWh/km)", height=360,
+                font=dict(color="#F8FAFC", family="Outfit")
+            )
+            st.plotly_chart(fig_scat, use_container_width=True)
+
+    with g2:
+        if {'periodo_dia', 'consumo_kwh_km'}.issubset(df_filtrado.columns):
+            df_per = df_filtrado.groupby('periodo_dia')['consumo_kwh_km'].mean().reset_index()
+            fig_per = px.bar(
+                df_per, x='periodo_dia', y='consumo_kwh_km', text_auto='.2f',
+                color='consumo_kwh_km', color_continuous_scale=['#00B3FF', '#7D2AE8'],
+                title="⏱️ Eficiência Energética por Turno"
+            )
+            fig_per.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", coloraxis_showscale=False,
+                xaxis_title="", yaxis_title="kWh/km", height=360,
+                font=dict(color="#F8FAFC", family="Outfit")
+            )
+            st.plotly_chart(fig_per, use_container_width=True)
 
 
-# ==============================================================================
-# 9. EXPORTAÇÃO
-# ==============================================================================
-st.markdown("<br>", unsafe_allow_html=True)
-with st.expander("📥 Consultar Tabela Completa e Exportar Relatório"):
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df_filtrado.to_excel(writer, sheet_name='Dados_Filtrados', index=False)
+# ------------------------------------------------------------------------------
+# ABA 3: CONFIABILIDADE & DIAGNÓSTICO DE FALHAS
+# ------------------------------------------------------------------------------
+with tab_falhas:
+    f1, f2, f3 = st.columns(3)
+
+    qtd_falhas = (df_filtrado['tipo_falha'] != 'Nenhuma').sum() if 'tipo_falha' in df_filtrado.columns else 0
+    pct_intervencao = (df_filtrado['intervencao_humana'] == 'Sim').mean() * 100 if 'intervencao_humana' in df_filtrado.columns else 0
+    tempo_interrupcao = df_filtrado['tempo_interrupcao_min'].mean() if 'tempo_interrupcao_min' in df_filtrado.columns else 0
+
+    f1.metric("Ocorrências Técnicas", f"{qtd_falhas}", "Falhas Detectadas", delta_color="inverse")
+    f2.metric("Intervenção Humana", f"{pct_intervencao:.1f}%", "Piloto Manual Acionado", delta_color="inverse")
+    f3.metric("Downtime Médio", f"{tempo_interrupcao:.1f} min", "Tempo de Interrupção", delta_color="inverse")
+
+    st.write("---")
+    st.markdown("### 🚨 Registro Detalhado de Incidentes")
     
+    cols_inc = ['id_viagem', 'id_onibus', 'linha', 'regiao', 'atraso_min', 'status_pontualidade', 'tipo_falha', 'intervencao_humana']
+    cols_existentes = [c for c in cols_inc if c in df_filtrado.columns]
+
+    df_incidentes = df_filtrado[
+        (df_filtrado['status_pontualidade'] == 'Crítica') | 
+        (df_filtrado['tipo_falha'] != 'Nenhuma')
+    ][cols_existentes].sort_values('atraso_min', ascending=False)
+
+    if not df_incidentes.empty:
+        st.dataframe(
+            df_incidentes,
+            column_config={
+                "id_viagem": "ID Viagem",
+                "id_onibus": "ID Ônibus",
+                "linha": "Linha",
+                "regiao": "Região",
+                "atraso_min": st.column_config.NumberColumn("Atraso", format="%d min"),
+                "status_pontualidade": "Status",
+                "tipo_falha": "Ocorrência",
+                "intervencao_humana": "Override Manual"
+            },
+            use_container_width=True,
+            hide_index=True,
+            height=300
+        )
+    else:
+        st.success("✅ O sistema operou de forma 100% autônoma e sem incidentes críticos no recorte selecionado.")
+
+
+# ==============================================================================
+# 9. CENTRAL DE EXPORTAÇÃO
+# ==============================================================================
+st.write("<br><br>", unsafe_allow_html=True)
+st.markdown("### 📥 Central de Exportação de Dados")
+st.caption(f"Base filtrada contendo {len(df_filtrado):,} linhas operacionais prontas para download.")
+
+col_exp_1, col_exp_2 = st.columns(2)
+
+buffer_excel = io.BytesIO()
+with pd.ExcelWriter(buffer_excel, engine='openpyxl') as writer:
+    df_filtrado.to_excel(writer, sheet_name='Dataset_Export', index=False)
+bytes_excel = buffer_excel.getvalue()
+bytes_csv = df_filtrado.to_csv(index=False).encode('utf-8-sig')
+
+with col_exp_1:
     st.download_button(
-        label="📄 Baixar Base em Excel (.xlsx)",
-        data=buffer.getvalue(),
-        file_name="relatorio_cidade_alfa.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        label="🟣 EXPORTAR RELATÓRIO EXCEL (.xlsx)",
+        data=bytes_excel,
+        file_name="relatorio_autonomo_fiap.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
     )
-    st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
+with col_exp_2:
+    st.download_button(
+        label="🔵 EXPORTAR DATASET RAW (.csv)",
+        data=bytes_csv,
+        file_name="dados_autonomos_fiap.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
+with st.expander("🔍 Inspecionar Base de Dados Completa"):
+    st.dataframe(
+        df_filtrado,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "ocupacao_pct": st.column_config.ProgressColumn("Ocupação", min_value=0, max_value=100, format="%d%%"),
+            "atraso_min": st.column_config.NumberColumn("Atraso (min)", format="%d"),
+            "consumo_kwh_km": st.column_config.NumberColumn("Consumo", format="%.2f kWh")
+        } if 'ocupacao_pct' in df_filtrado.columns else None
+    )
