@@ -235,7 +235,7 @@ df = carregar_dados()
 # ==============================================================================
 # 4. CABEÇALHO PRINCIPAL
 # ==============================================================================
-st.title("Monitor Inteligente de Transporte Público 🚍✨")
+st.title("Monitor Inteligente de Transporte Público")
 st.markdown("<p style='color: #8B949E; font-size: 1.1rem; font-weight: 300;'>Cidade Alfa — Telemetria de Frota Autônoma, Análise de SLA e Inteligência Operacional | FIAP • FASE 5</p>", unsafe_allow_html=True)
 st.divider()
 
