@@ -5,23 +5,23 @@ import os
 import io
 
 # ==============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. CONFIGURAÇÃO DA PÁGINA (Sidebar colapsada/removida)
 # ==============================================================================
 st.set_page_config(
     page_title="Monitor de Transporte Autônomo | FIAP",
     page_icon="🌌",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ==============================================================================
-# 2. INJEÇÃO DE CSS AVANÇADO (DUOTONE: AZUL & ROXO)
+# 2. INJEÇÃO DE CSS AVANÇADO (Removendo Sidebar + Cores Azul e Roxo)
 # ==============================================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap');
 
-/* --- Variáveis de Tema (Apenas Azul e Roxo) --- */
+/* --- Variáveis de Tema (Azul e Roxo) --- */
 :root {
     --bg-dark: #06070D;
     --card-bg: rgba(15, 17, 28, 0.6);
@@ -43,6 +43,14 @@ html, body, [class*="css"] {
         radial-gradient(circle at 10% 40%, rgba(125, 42, 232, 0.06), transparent 30%),
         radial-gradient(circle at 90% 60%, rgba(0, 179, 255, 0.06), transparent 30%);
     color: var(--text-main);
+}
+
+/* --- REMOÇÃO TOTAL DA SIDEBAR --- */
+section[data-testid="stSidebar"] {
+    display: none !important;
+}
+[data-testid="collapsedControl"] {
+    display: none !important;
 }
 
 /* --- Animações --- */
@@ -142,12 +150,6 @@ div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] { display: non
     animation: fadeInTab 0.6s ease-out;
 }
 
-/* --- SIDEBAR --- */
-section[data-testid="stSidebar"] {
-    background-color: #07080F !important;
-    border-right: 1px solid var(--border-color) !important;
-}
-
 /* --- GRÁFICOS --- */
 .stPlotlyChart {
     background: var(--card-bg) !important;
@@ -233,31 +235,27 @@ df = carregar_dados()
 # ==============================================================================
 # 4. CABEÇALHO PRINCIPAL
 # ==============================================================================
-st.title("Monitor Inteligente de Transporte Público")
+st.title("Monitor Inteligente de Transporte Público 🚍✨")
 st.markdown("<p style='color: #8B949E; font-size: 1.1rem; font-weight: 300;'>Cidade Alfa — Telemetria de Frota Autônoma, Análise de SLA e Inteligência Operacional | FIAP • FASE 5</p>", unsafe_allow_html=True)
 st.divider()
 
 
 # ==============================================================================
-# 5. FILTROS NA SIDEBAR
+# 5. FILTROS NA TELA PRINCIPAL (Em vez da Sidebar)
 # ==============================================================================
-st.sidebar.markdown("### 🎛️ Filtros Globais")
-st.sidebar.caption("Ajuste a amostragem da análise")
+with st.expander("🎛️ Painel de Filtros Globais e Condições Operacionais", expanded=True):
+    col_f1, col_f2, col_f3, col_f4 = st.columns(4)
+    
+    with col_f1:
+        filtro_linha = st.multiselect("Linha do Ônibus", options=sorted(df['linha'].dropna().unique()))
+    with col_f2:
+        filtro_regiao = st.multiselect("Região Urbana", options=sorted(df['regiao'].dropna().unique()))
+    with col_f3:
+        filtro_status = st.multiselect("Status SLA", options=sorted(df['status_pontualidade'].dropna().unique()))
+    with col_f4:
+        filtro_trafego = st.multiselect("Nível de Tráfego", options=sorted(df['nivel_trafego'].dropna().unique())) if 'nivel_trafego' in df.columns else []
 
-filtro_linha = st.sidebar.multiselect("Linha do Ônibus", options=sorted(df['linha'].dropna().unique()))
-filtro_regiao = st.sidebar.multiselect("Região Urbana", options=sorted(df['regiao'].dropna().unique()))
-filtro_status = st.sidebar.multiselect("Status SLA", options=sorted(df['status_pontualidade'].dropna().unique()))
-
-st.sidebar.divider()
-st.sidebar.markdown("### 🔥 Filtro de Exceção")
-apenas_falhas = st.sidebar.checkbox("Apenas Viagens com Falhas / Críticas", value=False)
-
-if 'nivel_trafego' in df.columns:
-    st.sidebar.divider()
-    st.sidebar.markdown("### 🌧️ Condições Operacionais")
-    filtro_trafego = st.sidebar.multiselect("Nível de Tráfego", options=sorted(df['nivel_trafego'].dropna().unique()))
-else:
-    filtro_trafego = []
+    apenas_falhas = st.checkbox("🔥 Exibir Apenas Viagens com Falhas / Críticas", value=False)
 
 
 # ==============================================================================
@@ -286,18 +284,7 @@ if df_filtrado.empty:
 
 
 # ==============================================================================
-# 7. RESUMO DA AMOSTRA NA SIDEBAR
-# ==============================================================================
-st.sidebar.divider()
-st.sidebar.metric(
-    label="Registros Selecionados",
-    value=f"{len(df_filtrado):,}".replace(",", "."),
-    delta=f"{(len(df_filtrado)/len(df))*100:.1f}% da base original"
-)
-
-
-# ==============================================================================
-# 8. ESTRUTURA PRINCIPAL EM ABAS
+# 7. ESTRUTURA PRINCIPAL EM ABAS
 # ==============================================================================
 tab_operacao, tab_telemetria, tab_falhas = st.tabs([
     "📊 1. Operação & SLA",
@@ -346,7 +333,6 @@ with tab_operacao:
         fig_status = px.pie(
             df_status, values='Qtd', names='Status', hole=0.6,
             color='Status',
-            # Paleta de tons da nova identidade (Azul claro p/ bom, Roxo p/ crítico)
             color_discrete_map={'No horário': '#00B3FF', 'Atrasada': '#7D2AE8', 'Crítica': '#3B0086'},
             title="🎯 Distribuição de Cumprimento do SLA"
         )
@@ -456,7 +442,7 @@ with tab_falhas:
 
 
 # ==============================================================================
-# 9. CENTRAL DE EXPORTAÇÃO
+# 8. CENTRAL DE EXPORTAÇÃO
 # ==============================================================================
 st.write("<br><br>", unsafe_allow_html=True)
 st.markdown("### 📥 Central de Exportação de Dados")
